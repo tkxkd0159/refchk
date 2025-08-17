@@ -1,23 +1,17 @@
-// Get elements from the DOM
 const checkButton = document.getElementById("checkButton");
 const loader = document.getElementById("loader");
 const resultsDiv = document.getElementById("results");
 const referencesText = document.getElementById("references");
 
-// Add event listener to the button
 checkButton.addEventListener("click", verifyReferences);
-
-// --- Helper function to pause between API calls ---
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// --- Query functions for direct ID lookups (unchanged) ---
 async function queryByDOI(doi) {
   const url = `https://api.crossref.org/works/${encodeURIComponent(doi)}`;
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent":
-          "ReferenceCheckerWebApp/1.0 (mailto:your-email@example.com)",
+        "User-Agent": "ReferenceCheckerWebApp/1.0",
       },
     });
     if (response.status === 404) return null;
@@ -66,9 +60,9 @@ async function queryByISBN(isbn) {
   }
 }
 
-// --- NEW: Title-first search logic ---
-async function queryByTitle(authorQuery, titleQuery) {
-  // Helper function to check for author match
+async function intelligentTitleSearch(authorQuery, titleQuery) {
+  let potentialResult = null;
+
   const checkAuthor = (apiAuthors, userAuthor) => {
     if (!apiAuthors || apiAuthors.length === 0) return false;
     const userLastName = userAuthor
@@ -94,7 +88,6 @@ async function queryByTitle(authorQuery, titleQuery) {
     if (data.message.items && data.message.items.length > 0) {
       for (const item of data.message.items) {
         const apiTitle = ((item.title && item.title[0]) || "").toLowerCase();
-        // Use a stricter title match
         if (apiTitle.includes(titleQuery.toLowerCase())) {
           const apiAuthorsList = (item.author || []).map((a) =>
             `${a.given || ""} ${a.family || ""}`.trim()
@@ -106,9 +99,9 @@ async function queryByTitle(authorQuery, titleQuery) {
               message: `✅ <strong>Verified on CrossRef:</strong> '${item.title[0]}' | <strong>DOI:</strong> ${doi}`,
             };
           } else {
-            return {
+            potentialResult = {
               status: "potential",
-              message: `⚠️ <strong>Potential Match on CrossRef:</strong> Title found, but author '${authorQuery}' did not match the result's authors: '${apiAuthorsList.join(
+              message: `⚠️ <strong>Potential Match on CrossRef:</strong> Title found, but author '${authorQuery}' did not match result's authors: '${apiAuthorsList.join(
                 ", "
               )}'.`,
             };
@@ -120,7 +113,7 @@ async function queryByTitle(authorQuery, titleQuery) {
     console.error("CrossRef Title Search Error:", e);
   }
 
-  // 2. Search Google Books by title
+  // 2. Search Google Books by title. This runs if no VERIFIED match was found on CrossRef.
   const gbooksUrl = `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(
     titleQuery
   )}`;
@@ -131,22 +124,15 @@ async function queryByTitle(authorQuery, titleQuery) {
       for (const item of data.items) {
         const volumeInfo = item.volumeInfo || {};
         const apiTitle = (volumeInfo.title || "").toLowerCase();
-        // Use a stricter title match
         if (apiTitle.includes(titleQuery.toLowerCase())) {
           const apiAuthors = volumeInfo.authors || [];
           if (checkAuthor(apiAuthors, authorQuery)) {
+            // A verified match from Google Books is better than a potential one from CrossRef.
             return {
               status: "verified",
               message: `✅ <strong>Verified on Google Books:</strong> '${
                 volumeInfo.title
               }' by ${apiAuthors.join(", ")}`,
-            };
-          } else {
-            return {
-              status: "potential",
-              message: `⚠️ <strong>Potential Match on Google Books:</strong> Title found, but author '${authorQuery}' did not match result's authors: '${apiAuthors.join(
-                ", "
-              )}'.`,
             };
           }
         }
@@ -156,10 +142,9 @@ async function queryByTitle(authorQuery, titleQuery) {
     console.error("Google Books Title Search Error:", e);
   }
 
-  return null; // No match found anywhere
+  return potentialResult;
 }
 
-// --- Main function to orchestrate the checks (UPDATED) ---
 async function verifyReferences() {
   checkButton.disabled = true;
   loader.style.display = "block";
@@ -188,7 +173,7 @@ async function verifyReferences() {
       }
     }
 
-    // Step 2: Fallback to title-first search
+    // Step 2: Fallback to the new intelligent title-first search
     if (!result) {
       if (!author || !title) {
         result = {
@@ -196,23 +181,20 @@ async function verifyReferences() {
           message: `⚠️ <strong>Invalid Format:</strong> Requires at least 'Author, Title'.`,
         };
       } else {
-        result = await queryByTitle(author, title);
+        result = await intelligentTitleSearch(author, title);
       }
     }
 
-    // Determine final status message
     if (result) {
       finalStatus = result.message;
       if (result.status === "verified") statusClass = "success";
-      else if (result.status === "potential")
-        statusClass = "error"; // Use 'error' style for visibility
+      else if (result.status === "potential") statusClass = "error";
       else if (result.status === "error") statusClass = "error";
     } else {
       finalStatus = `❌ <strong>Unverified / Potentially Fake</strong>`;
       statusClass = "fail";
     }
 
-    // Append result to the page
     const resultHTML = `
             <div class="result-item result-item-${statusClass}">
                 <div class="ref-title">${originalRef}</div>
