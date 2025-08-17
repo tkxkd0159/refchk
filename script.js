@@ -1,13 +1,9 @@
-// Get elements from the DOM
 const checkButton = document.getElementById("checkButton");
 const loader = document.getElementById("loader");
 const resultsDiv = document.getElementById("results");
 const referencesText = document.getElementById("references");
 
-// Add event listener to the button
 checkButton.addEventListener("click", verifyReferences);
-
-// --- Helper function to pause between API calls ---
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // --- Query CrossRef for Academic Papers ---
@@ -49,10 +45,10 @@ async function queryCrossRef(authorQuery, titleQuery) {
     console.error("CrossRef API Error:", error);
     return `⚠️ <strong>Error connecting to CrossRef API:</strong> ${error.message}`;
   }
-  return null; // No match found
+  return null;
 }
 
-// --- Query Google Books ---
+// --- Query for Books ---
 async function queryGoogleBooks(authorQuery, titleQuery) {
   const url = `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(
     titleQuery
@@ -91,9 +87,7 @@ async function queryGoogleBooks(authorQuery, titleQuery) {
   return null; // No match found
 }
 
-// --- Main function to orchestrate the checks ---
 async function verifyReferences() {
-  // Disable button and show loader
   checkButton.disabled = true;
   loader.style.display = "block";
   resultsDiv.innerHTML = "";
@@ -102,11 +96,14 @@ async function verifyReferences() {
     .split("\n")
     .filter((ref) => ref.trim() !== "");
 
-  for (const ref of references) {
+  for (const originalRef of references) {
+    let cleanedRef = originalRef.trim();
+    cleanedRef = cleanedRef.replace(/^['"]|['"]$/g, "");
+
     let statusClass = "fail"; // Default to fail
     let finalStatus = "";
 
-    const parts = ref.split(",");
+    const parts = cleanedRef.split(",");
     if (parts.length < 2) {
       finalStatus = `⚠️ <strong>Invalid Format:</strong> Must be 'Author, Title'.`;
       statusClass = "error";
@@ -131,10 +128,10 @@ async function verifyReferences() {
       }
     }
 
-    // Append result to the page
+    // Append result to the page, showing the user's original input
     const resultHTML = `
             <div class="result-item result-item-${statusClass}">
-                <div class="ref-title">${ref}</div>
+                <div class="ref-title">${originalRef}</div>
                 <div class="status status-${statusClass}">${finalStatus}</div>
             </div>
         `;
@@ -143,7 +140,6 @@ async function verifyReferences() {
     await sleep(500); // Polite pause between requests
   }
 
-  // Re-enable button and hide loader
   loader.style.display = "none";
   checkButton.disabled = false;
 }
