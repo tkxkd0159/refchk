@@ -2,9 +2,49 @@ const checkButton = document.getElementById("checkButton");
 const loader = document.getElementById("loader");
 const resultsDiv = document.getElementById("results");
 const referencesText = document.getElementById("references");
+const historyList = document.getElementById("historyList");
+const clearHistoryButton = document.getElementById("clearHistoryButton");
+const historyContainer = document.getElementById("history-container");
 
 checkButton.addEventListener("click", verifyReferences);
+clearHistoryButton.addEventListener("click", clearHistory);
+document.addEventListener("DOMContentLoaded", loadHistory);
+historyContainer.querySelector("h2").addEventListener("click", () => {
+  historyContainer.classList.toggle("collapsed");
+});
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function loadHistory() {
+  const history = JSON.parse(localStorage.getItem("refHistory")) || [];
+  historyList.innerHTML = "";
+  history.forEach((query) => {
+    const li = document.createElement("li");
+    li.textContent = query.join(", "); // Display cleaned refs
+    li.addEventListener("click", () => {
+      referencesText.value = query.join("\n");
+    });
+    historyList.appendChild(li);
+  });
+}
+
+function addToHistory(query) {
+  let history = JSON.parse(localStorage.getItem("refHistory")) || [];
+  const queryStr = JSON.stringify(query);
+  if (!history.find((h) => JSON.stringify(h) === queryStr)) {
+    history.unshift(query);
+    if (history.length > 10) {
+      history.pop();
+    }
+    localStorage.setItem("refHistory", JSON.stringify(history));
+    loadHistory();
+  }
+}
+
+function clearHistory() {
+  localStorage.removeItem("refHistory");
+  loadHistory();
+}
 
 async function queryByDOI(doi) {
   const url = `https://doi.org/${encodeURIComponent(doi)}`;
@@ -147,15 +187,21 @@ async function intelligentTitleSearch(authorQuery, titleQuery) {
 }
 
 async function verifyReferences() {
+  const query = referencesText.value;
+  if (query.trim() === "") return;
+
   checkButton.disabled = true;
   loader.style.display = "block";
   resultsDiv.innerHTML = "";
-  const references = referencesText.value
+  const references = query
     .split("\n")
     .filter((ref) => ref.trim() !== "" && !ref.trim().startsWith("#"));
 
+  const cleanedRefs = [];
+
   for (const originalRef of references) {
     let cleanedRef = originalRef.replace(/^[\s'"]+|[\s'"]+$/g, "");
+    cleanedRefs.push(cleanedRef);
     let result = null;
     let finalStatus = "";
     let statusClass = "fail";
@@ -204,6 +250,11 @@ async function verifyReferences() {
     resultsDiv.innerHTML += resultHTML;
     await sleep(500);
   }
+
+  if (cleanedRefs.length > 0) {
+    addToHistory(cleanedRefs);
+  }
+
   loader.style.display = "none";
   checkButton.disabled = false;
 }

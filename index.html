@@ -89,6 +89,62 @@
         font-size: 1.2rem;
         margin-top: 15px;
       }
+      #history-container {
+        margin-top: 30px;
+        border-top: 2px solid #e0e0e0;
+        padding-top: 15px;
+      }
+      #history-container h2 {
+        text-align: center;
+        color: #2c3e50;
+        cursor: pointer;
+      }
+      .toggle-indicator {
+        display: inline-block;
+        margin-left: 10px;
+        transition: transform 0.2s;
+      }
+      #history-container.collapsed .toggle-indicator {
+        transform: rotate(0deg);
+      }
+      #history-container:not(.collapsed) .toggle-indicator {
+        transform: rotate(90deg);
+      }
+      #history-container.collapsed .history-content {
+        display: none;
+      }
+      #clearHistoryButton {
+        display: block;
+        width: auto;
+        margin: 10px auto;
+        padding: 8px 15px;
+        background-color: #e74c3c;
+        font-size: 0.9rem;
+      }
+      #clearHistoryButton:hover {
+        background-color: #c0392b;
+      }
+      #historyList {
+        list-style: none;
+        padding: 0;
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #fff;
+      }
+      #historyList li {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      #historyList li:hover {
+        background-color: #f0f0f0;
+      }
+      #historyList li:last-child {
+        border-bottom: none;
+      }
     </style>
   </head>
   <body>
@@ -107,6 +163,14 @@
 
     <div id="loader" class="loader">Checking... Please wait.</div>
     <div id="results"></div>
+
+    <div id="history-container" class="collapsed">
+      <h2>Query History <span class="toggle-indicator">&#9654;</span></h2>
+      <div class="history-content">
+        <button id="clearHistoryButton">Clear History</button>
+        <ul id="historyList"></ul>
+      </div>
+    </div>
 
     <script src="script.js" defer></script>
   </body>
