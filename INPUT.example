@@ -1,0 +1,38 @@
+# --- VALID INPUTS ---
+# Standard book
+Carl Sagan, Cosmos
+
+# Standard academic paper
+Krizhevsky et al, ImageNet Classification with Deep Convolutional Neural Networks
+
+# Book with a valid ISBN (fast search)
+J.K. Rowling, Harry Potter and the Sorcerer's Stone, 9780590353427
+
+# Paper with a valid DOI (fast search)
+Vaswani et al, Attention Is All You Need, 10.48550/arXiv.1706.03762
+
+# --- FAKE & INVALID INPUTS ---
+# Completely fabricated reference
+Professor Elara Vance, The Quantum Echoes of Mars
+
+# Real author/title but with a FAKE DOI
+Goodfellow et al, Generative Adversarial Nets, 10.9999/fake.doi.12345
+
+# Real author/title but with a FAKE ISBN
+Frank Herbert, Dune, 9780123456789
+
+# --- FORMATTING & EDGE CASES ---
+# Input with surrounding double quotes
+"Isaac Asimov, Foundation"
+
+# Input with surrounding single quotes
+'Douglas Adams, The Hitchhiker's Guide to the Galaxy'
+
+# Input with only a trailing quote
+Philip K. Dick, Do Androids Dream of Electric Sheep?'
+
+# Input with extra whitespace
+  Andy Weir,    The Martian
+
+# Malformed input (missing title)
+Albert Einstein

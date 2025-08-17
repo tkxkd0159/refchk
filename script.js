@@ -7,22 +7,23 @@ checkButton.addEventListener("click", verifyReferences);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function queryByDOI(doi) {
-  const url = `https://api.crossref.org/works/${encodeURIComponent(doi)}`;
+  const url = `https://doi.org/${encodeURIComponent(doi)}`;
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "ReferenceCheckerWebApp/1.0",
+        Accept: "application/vnd.citationstyles.csl+json",
       },
     });
-    if (response.status === 404) return null;
+    if (response.status === 404) {
+      return null; // DOI not found
+    }
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
     const data = await response.json();
-    const item = data.message;
-    const title =
-      item.title && item.title.length > 0 ? item.title[0] : "No Title Found";
+    const title = data.title || "No Title Found";
     return {
       status: "verified",
-      message: `✅ <strong>Verified by DOI on CrossRef:</strong> '${title}'`,
+      message: `✅ <strong>Verified by DOI on doi.org:</strong> '${title}'`,
     };
   } catch (error) {
     console.error("DOI API Error:", error);
@@ -98,7 +99,7 @@ async function intelligentTitleSearch(authorQuery, titleQuery) {
               status: "verified",
               message: `✅ <strong>Verified on CrossRef:</strong> '${item.title[0]}' | <strong>DOI:</strong> ${doi}`,
             };
-          } else {
+          } else if (!potentialResult) {
             potentialResult = {
               status: "potential",
               message: `⚠️ <strong>Potential Match on CrossRef:</strong> Title found, but author '${authorQuery}' did not match result's authors: '${apiAuthorsList.join(
