@@ -32,10 +32,7 @@ function loadHistory() {
   const history = JSON.parse(localStorage.getItem("refHistory")) || [];
   historyList.innerHTML = "";
   history.forEach((query) => {
-    const li =
-      document.createElement(
-        "li"
-      );
+    const li = document.createElement("li");
     li.className = "list-group-item list-group-item-action";
     li.textContent = query.join(", "); // Display cleaned refs
     li.style.cursor = "pointer";
@@ -186,12 +183,19 @@ async function intelligentTitleSearch(authorQuery, titleQuery) {
         if (apiTitle.includes(titleQuery.toLowerCase())) {
           const apiAuthors = volumeInfo.authors || [];
           if (checkAuthor(apiAuthors, authorQuery)) {
-            // A verified match from Google Books is better than a potential one from CrossRef.
+            let isbn = "N/A";
+            for (const item of volumeInfo.industryIdentifiers) {
+              isbn = item.identifier;
+              if (item.type === "ISBN_13") {
+                break;
+              }
+            }
+
             return {
               status: "verified",
-              message: `✅ <strong>Verified on Google Books:</strong> '${
+              message: `✅ <strong>Verified on Google Books:</strong>'${
                 volumeInfo.title
-              }' by ${apiAuthors.join(", ")}`,
+              }' by ${apiAuthors.join(", ")} | <strong>ISBN:</strong> ${isbn}`,
             };
           }
         }
