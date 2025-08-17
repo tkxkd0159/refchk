@@ -4,23 +4,41 @@ const resultsDiv = document.getElementById("results");
 const referencesText = document.getElementById("references");
 const historyList = document.getElementById("historyList");
 const clearHistoryButton = document.getElementById("clearHistoryButton");
-const historyContainer = document.getElementById("history-container");
+const themeToggle = document.getElementById("theme-toggle");
 
 checkButton.addEventListener("click", verifyReferences);
 clearHistoryButton.addEventListener("click", clearHistory);
-document.addEventListener("DOMContentLoaded", loadHistory);
-historyContainer.querySelector("h2").addEventListener("click", () => {
-  historyContainer.classList.toggle("collapsed");
+document.addEventListener("DOMContentLoaded", () => {
+  loadHistory();
+  initializeTheme();
 });
+themeToggle.addEventListener("change", toggleTheme);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function initializeTheme() {
+  const savedTheme = localStorage.getItem("theme") || "light";
+  document.documentElement.setAttribute("data-bs-theme", savedTheme);
+  themeToggle.checked = savedTheme === "dark";
+}
+
+function toggleTheme() {
+  const theme = themeToggle.checked ? "dark" : "light";
+  document.documentElement.setAttribute("data-bs-theme", theme);
+  localStorage.setItem("theme", theme);
+}
 
 function loadHistory() {
   const history = JSON.parse(localStorage.getItem("refHistory")) || [];
   historyList.innerHTML = "";
   history.forEach((query) => {
-    const li = document.createElement("li");
+    const li =
+      document.createElement(
+        "li"
+      );
+    li.className = "list-group-item list-group-item-action";
     li.textContent = query.join(", "); // Display cleaned refs
+    li.style.cursor = "pointer";
     li.addEventListener("click", () => {
       referencesText.value = query.join("\n");
     });
@@ -200,16 +218,16 @@ async function verifyReferences() {
   const cleanedRefs = [];
 
   for (const originalRef of references) {
-    let cleanedRef = originalRef.replace(/^[\s'"]+|[\s'"]+$/g, "");
+    let cleanedRef = originalRef.replace(/^["\s']+|[\s'" ]+$/g, "");
     cleanedRefs.push(cleanedRef);
     let result = null;
     let finalStatus = "";
-    let statusClass = "fail";
+    let statusClass = "danger";
 
     const parts = cleanedRef.split(",");
-    const author = parts[0]?.replace(/^[\s'"]+|[\s'"]+$/g, "");
-    const title = parts[1]?.replace(/^[\s'"]+|[\s'"]+$/g, "");
-    const identifier = parts[2]?.replace(/^[\s'"]+|[\s'"]+$/g, "");
+    const author = parts[0]?.replace(/^["\s']+|[\s'" ]+$/g, "");
+    const title = parts[1]?.replace(/^["\s']+|[\s'" ]+$/g, "");
+    const identifier = parts[2]?.replace(/^["\s']+|[\s'" ]+$/g, "");
 
     // Step 1: Prioritize direct identifier search
     if (identifier) {
@@ -235,18 +253,20 @@ async function verifyReferences() {
     if (result) {
       finalStatus = result.message;
       if (result.status === "verified") statusClass = "success";
-      else if (result.status === "potential") statusClass = "error";
-      else if (result.status === "error") statusClass = "error";
+      else if (result.status === "potential") statusClass = "warning";
+      else if (result.status === "error") statusClass = "danger";
     } else {
       finalStatus = `❌ <strong>Unverified / Potentially Fake</strong>`;
-      statusClass = "fail";
+      statusClass = "danger";
     }
 
     const resultHTML = `
-            <div class="result-item result-item-${statusClass}">
-                <div class="ref-title">${originalRef}</div>
-                <div class="status status-${statusClass}">${finalStatus}</div>
-            </div>`;
+      <div class="card border-${statusClass} mb-3">
+        <div class="card-body">
+          <h5 class="card-title">${originalRef}</h5>
+          <p class="card-text">${finalStatus}</p>
+        </div>
+      </div>`;
     resultsDiv.innerHTML += resultHTML;
     await sleep(500);
   }
